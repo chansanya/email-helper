@@ -337,6 +337,11 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
           })
         }
 
+        // 把正文里的 CID 内嵌图片追加进邮件，确保客户端能在正文完整渲染图片
+        if (content.inlineAttachments && content.inlineAttachments.length > 0) {
+          mailAttachments.push(...content.inlineAttachments)
+        }
+
         await transporter.sendMail({
           from: fromField,
           to: targetEmail,

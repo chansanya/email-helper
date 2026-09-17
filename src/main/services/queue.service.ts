@@ -578,7 +578,8 @@ export class QueueService {
           {
             filename: item.attachmentName,
             path: fileCheck.fullPath
-          }
+          },
+          ...(mailContent.inlineAttachments || [])
         ]
       }
 

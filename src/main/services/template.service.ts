@@ -1,6 +1,21 @@
 import juice from 'juice'
 import type { MailTemplate, RecipientMapping } from '../../shared/types'
 
+export interface InlineAttachment {
+  filename: string
+  content: Buffer
+  cid: string
+  contentType: string
+  contentDisposition: string
+}
+
+export interface PreparedMailContent {
+  subject: string
+  html: string
+  text: string
+  inlineAttachments: InlineAttachment[]
+}
+
 function sanitizeMailHtml(html: string): string {
   if (!html) return ''
   return html
@@ -38,11 +53,7 @@ export class TemplateService {
     template: MailTemplate,
     recipient: Partial<RecipientMapping>,
     attachmentName: string
-  ): {
-    subject: string
-    html: string
-    text: string
-  } {
+  ): PreparedMailContent {
     const renderedSubject = this.renderVariables(template.subject, recipient, attachmentName)
     const renderedHtml = this.renderVariables(template.htmlContent, recipient, attachmentName)
     const renderedText = this.renderVariables(template.textContent, recipient, attachmentName)
@@ -56,10 +67,31 @@ export class TemplateService {
       removeStyleTags: false
     })
 
+    // 将 Base64 图片 (data:image/...) 自动转换为全邮件客户端兼容的 CID 内嵌图片附件
+    const inlineAttachments: InlineAttachment[] = []
+    let imgIndex = 0
+    const finalHtml = inlinedHtml.replace(
+      /src=["']data:image\/([a-zA-Z0-9+]+);base64,([^"']+)["']/gi,
+      (_, mimeType, base64Data) => {
+        imgIndex++
+        const cid = `img_${imgIndex}_${Date.now()}@emailhelper`
+        const ext = mimeType.toLowerCase() === 'jpeg' ? 'jpg' : mimeType.toLowerCase()
+        inlineAttachments.push({
+          filename: `inline_image_${imgIndex}.${ext}`,
+          content: Buffer.from(base64Data, 'base64'),
+          cid,
+          contentType: `image/${mimeType}`,
+          contentDisposition: 'inline'
+        })
+        return `src="cid:${cid}"`
+      }
+    )
+
     return {
       subject: renderedSubject,
-      html: inlinedHtml,
-      text: renderedText || cleanHtml.replace(/<[^>]+>/g, ' ').trim()
+      html: finalHtml,
+      text: renderedText || cleanHtml.replace(/<[^>]+>/g, ' ').trim(),
+      inlineAttachments
     }
   }
 }

@@ -13,7 +13,7 @@
           <div class="guide-content">
             <div class="guide-title">准备符合规范的表格文件</div>
             <div class="guide-desc">
-              表格首行需包含：<code>收件邮箱</code>、<code>附件相对路径</code>，可选 <code>收件人姓名</code>、<code>备注</code>。支持直接上传已补齐邮箱的收集表格（系统将按附件路径自动匹配回填）。
+              表格包含：<code>收件邮箱</code>、<code>收件人姓名</code>，以及系统生成的 <code>文件识别编号</code>。支持直接上传填好的表格，系统将按识别编号精准关联已有记录并补全邮箱。
             </div>
           </div>
           <button type="button" class="template-download-btn" @click="downloadTemplate">

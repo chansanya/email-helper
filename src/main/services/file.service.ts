@@ -136,7 +136,7 @@ export class FileService {
       序号: idx + 1,
       收件人姓名: m.recipientName,
       '收件邮箱 (请在此列填写)': m.recipientEmail || '',
-      '专属附件相对路径 (请勿修改)': m.attachmentPath,
+      文件识别编号: m.id,
       备注: m.remark || ''
     }))
 
@@ -146,8 +146,8 @@ export class FileService {
       { wch: 6 },
       { wch: 24 },
       { wch: 32 },
-      { wch: 38 },
-      { wch: 22 }
+      { wch: 28 },
+      { wch: 20 }
     ]
     XLSX.utils.book_append_sheet(wb, ws, '待补全名单')
     XLSX.writeFile(wb, filePath)
@@ -211,10 +211,14 @@ export class FileService {
     }
 
     const currentMappings = await storageService.getMappings()
+    const existingIdMap = new Map<string, RecipientMapping>()
     const existingEmailMap = new Map<string, RecipientMapping>()
     const existingAttachMap = new Map<string, RecipientMapping>()
 
     for (const m of currentMappings) {
+      if (m.id) {
+        existingIdMap.set(m.id, m)
+      }
       if (m.recipientEmail) {
         existingEmailMap.set(m.recipientEmail.toLowerCase(), m)
       }
@@ -252,6 +256,17 @@ export class FileService {
         ''
       ).trim()
 
+      const fileCode = String(
+        row['文件识别编号'] ||
+        row['文件识别码'] ||
+        row['文件编号'] ||
+        row['识别编号'] ||
+        row['匹配编号'] ||
+        row['ID'] ||
+        row['id'] ||
+        ''
+      ).trim()
+
       const attach = String(
         row['专属附件相对路径 (请勿修改)'] ||
         row['附件相对路径'] ||
@@ -264,28 +279,34 @@ export class FileService {
       const enabledRaw = String(row['是否启用'] || row['enabled'] || row['启用'] || '1').trim()
       const remark = String(row['备注'] || row['remark'] || '').trim()
 
-      if (!email && !attach && !name) continue // 跳过全空行
+      if (!email && !attach && !name && !fileCode) continue // 跳过全空行
 
       const normAttach = attach ? attach.toLowerCase().replace(/\\/g, '/') : ''
       const isValidEmail = !!email && EMAIL_REGEX.test(email)
 
-      // 1. 优先按专属附件相对路径匹配已有记录（二次上传回填邮箱模式）
-      if (normAttach && existingAttachMap.has(normAttach)) {
-        const existing = existingAttachMap.get(normAttach)!
+      // 1. 优先按文件识别编号（ID）匹配，或按附件相对路径匹配已有记录（回填补全模式）
+      let matchedRecord: RecipientMapping | undefined
+      if (fileCode && existingIdMap.has(fileCode)) {
+        matchedRecord = existingIdMap.get(fileCode)
+      } else if (normAttach && existingAttachMap.has(normAttach)) {
+        matchedRecord = existingAttachMap.get(normAttach)
+      }
+
+      if (matchedRecord) {
         if (email) {
           if (!isValidEmail) {
             errors.push({ row: rowNum, email, reason: '邮箱格式非法' })
             continue
           }
-          existing.recipientEmail = email
-          if (name) existing.recipientName = name
-          if (remark) existing.remark = remark
-          const check = safeResolveAttachmentPath(existing.attachmentPath)
-          existing.fileStatus = check.exists && check.isFile ? 'OK' : 'MISSING'
-          existing.fileSize = check.size
-          existing.emailStatus = 'VALID'
-          existing.enabled = true // 补全成功后自动解除禁用
-          existing.updatedAt = new Date().toISOString()
+          matchedRecord.recipientEmail = email
+          if (name) matchedRecord.recipientName = name
+          if (remark) matchedRecord.remark = remark
+          const check = safeResolveAttachmentPath(matchedRecord.attachmentPath)
+          matchedRecord.fileStatus = check.exists && check.isFile ? 'OK' : 'MISSING'
+          matchedRecord.fileSize = check.size
+          matchedRecord.emailStatus = 'VALID'
+          matchedRecord.enabled = true // 补全成功后自动解除禁用
+          matchedRecord.updatedAt = new Date().toISOString()
           completedCount++
           continue
         }

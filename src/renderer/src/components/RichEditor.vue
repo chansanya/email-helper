@@ -34,6 +34,16 @@
         <button type="button" class="tool-btn" title="分割线" @click="execCmd('insertHorizontalRule')">
           <Minus :size="16" />
         </button>
+        <button type="button" class="tool-btn" title="插入本地图片 (支持截图直接 Ctrl+V 粘贴)" @click="triggerImageSelect">
+          <ImageIcon :size="16" />
+        </button>
+        <input
+          ref="imageInputRef"
+          type="file"
+          accept="image/*"
+          style="display: none"
+          @change="onImageFileChange"
+        />
       </div>
 
       <div class="tool-divider"></div>
@@ -60,6 +70,9 @@
       contenteditable="true"
       @input="handleInput"
       @blur="handleBlur"
+      @paste="handlePaste"
+      @drop.prevent="handleDropImage"
+      @dragover.prevent
     ></div>
   </div>
 </template>
@@ -76,8 +89,10 @@ import {
   List,
   ListOrdered,
   Minus,
-  Code
+  Code,
+  Image as ImageIcon
 } from 'lucide-vue-next'
+import { ElMessage } from 'element-plus'
 import { TEMPLATE_VARIABLES } from '@shared/constants'
 
 const props = defineProps<{
@@ -89,6 +104,7 @@ const emit = defineEmits<{
 }>()
 
 const editorContentRef = ref<HTMLDivElement | null>(null)
+const imageInputRef = ref<HTMLInputElement | null>(null)
 const variables = TEMPLATE_VARIABLES
 
 function execCmd(command: string, value: string | undefined = undefined) {
@@ -106,6 +122,71 @@ function insertVariable(variableKey: string) {
   editorContentRef.value.focus()
   document.execCommand('insertText', false, variableKey)
   emitChange()
+}
+
+function triggerImageSelect() {
+  imageInputRef.value?.click()
+}
+
+function processImageFile(file: File) {
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('请选择有效的图片文件 (PNG, JPG, JPEG, WebP, GIF)')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.warning('建议图片体积控制在 5MB 以内，避免邮件过大被发信服务商拦截')
+  }
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const dataUrl = e.target?.result as string
+    if (dataUrl) {
+      insertImage(dataUrl)
+    }
+  }
+  reader.readAsDataURL(file)
+}
+
+function onImageFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (input.files && input.files[0]) {
+    processImageFile(input.files[0])
+    input.value = ''
+  }
+}
+
+function insertImage(dataUrl: string) {
+  if (!editorContentRef.value) return
+  editorContentRef.value.focus()
+  const imgHtml = `<p><img src="${dataUrl}" style="max-width: 100%; height: auto; border-radius: 6px; margin: 12px 0; display: block;" /></p><p><br></p>`
+  document.execCommand('insertHTML', false, imgHtml)
+  emitChange()
+}
+
+function handlePaste(e: ClipboardEvent) {
+  if (!e.clipboardData) return
+  const items = e.clipboardData.items
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      e.preventDefault()
+      const blob = items[i].getAsFile()
+      if (blob) {
+        processImageFile(blob)
+        return
+      }
+    }
+  }
+}
+
+function handleDropImage(e: DragEvent) {
+  if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+    for (let i = 0; i < e.dataTransfer.files.length; i++) {
+      const file = e.dataTransfer.files[i]
+      if (file.type.startsWith('image/')) {
+        processImageFile(file)
+      }
+    }
+  }
 }
 
 function handleInput() {

@@ -218,7 +218,7 @@ export class QueueService {
     const d = String(now.getDate()).padStart(2, '0')
     const hh = String(now.getHours()).padStart(2, '0')
     const mm = String(now.getMinutes()).padStart(2, '0')
-    const name = jobName || `批量发信_${y}-${m}-${d}-${hh}${mm}`
+    const name = jobName || `批量发信_${y}${m}${d}${hh}${mm}`
 
     const newJob: SendJob = {
       id: 'job_' + Date.now(),

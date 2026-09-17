@@ -110,7 +110,7 @@ async function open() {
   const d = String(now.getDate()).padStart(2, '0')
   const hh = String(now.getHours()).padStart(2, '0')
   const mm = String(now.getMinutes()).padStart(2, '0')
-  jobName.value = `批量发信_${y}-${m}-${d}-${hh}${mm}`
+  jobName.value = `批量发信_${y}${m}${d}${hh}${mm}`
 
   try {
     const res = await window.electronAPI.preflightCheck()

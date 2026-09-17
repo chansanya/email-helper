@@ -212,8 +212,13 @@ export class QueueService {
       }
     })
 
-    const nowStr = new Date().toISOString()
-    const name = jobName || `批量发送_${nowStr.slice(0, 10)}_${nowStr.slice(11, 16).replace(':', '')}`
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    const hh = String(now.getHours()).padStart(2, '0')
+    const mm = String(now.getMinutes()).padStart(2, '0')
+    const name = jobName || `批量发信_${y}-${m}-${d}-${hh}${mm}`
 
     const newJob: SendJob = {
       id: 'job_' + Date.now(),

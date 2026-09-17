@@ -105,7 +105,12 @@ async function open() {
   loading.value = true
   report.value = null
   const now = new Date()
-  jobName.value = `批量发信_${now.toISOString().slice(0, 10)}_${now.toTimeString().slice(0, 5).replace(':', '')}`
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  const hh = String(now.getHours()).padStart(2, '0')
+  const mm = String(now.getMinutes()).padStart(2, '0')
+  jobName.value = `批量发信_${y}-${m}-${d}-${hh}${mm}`
 
   try {
     const res = await window.electronAPI.preflightCheck()

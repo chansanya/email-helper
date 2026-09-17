@@ -32,3 +32,17 @@ nsis:
   differentialPackage: false
 portable:
   artifactName: EmailHelper-${version}-${arch}-portable.${ext}
+mac:
+  identity: null
+  artifactName: EmailHelper-${version}-${arch}.${ext}
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+dmg:
+  artifactName: EmailHelper-${version}-${arch}.${ext}

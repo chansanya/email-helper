@@ -167,6 +167,7 @@ export interface ImportResult {
   importedCount: number
   skippedCount: number
   overwrittenCount: number
+  completedCount?: number
   errorCount: number
   errors: Array<{ row: number; email?: string; reason: string }>
 }
@@ -207,6 +208,8 @@ export interface ElectronAPI {
   deleteMappings: (ids: string[]) => Promise<ApiResponse<boolean>>
   importMappings: (options: ImportOptions) => Promise<ApiResponse<ImportResult>>
   exportMappings: () => Promise<ApiResponse<{ defaultPath: string }>>
+  autoExtractAttachments: () => Promise<ApiResponse<{ extractedCount: number; skippedCount: number }>>
+  exportMissingTemplate: () => Promise<ApiResponse<{ filePath: string; count: number }>>
   validateAllMappings: () => Promise<ApiResponse<RecipientMapping[]>>
 
   // Files

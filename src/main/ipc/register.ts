@@ -173,6 +173,24 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
   })
 
+  ipcMain.handle('mapping:autoExtract', async () => {
+    try {
+      const res = await fileService.autoExtractFromAttachments()
+      return success(res)
+    } catch (e: any) {
+      return failure(e)
+    }
+  })
+
+  ipcMain.handle('mapping:exportMissingTemplate', async () => {
+    try {
+      const res = await fileService.exportMissingTemplate()
+      return success(res)
+    } catch (e: any) {
+      return failure(e)
+    }
+  })
+
   ipcMain.handle('mapping:validateAll', async () => {
     try {
       const mappings = await storageService.getMappings()

@@ -18,6 +18,8 @@ const api: ElectronAPI = {
   deleteMappings: (ids) => ipcRenderer.invoke('mapping:delete', ids),
   importMappings: (options) => ipcRenderer.invoke('mapping:import', options),
   exportMappings: () => ipcRenderer.invoke('mapping:export'),
+  autoExtractAttachments: () => ipcRenderer.invoke('mapping:autoExtract'),
+  exportMissingTemplate: () => ipcRenderer.invoke('mapping:exportMissingTemplate'),
   validateAllMappings: () => ipcRenderer.invoke('mapping:validateAll'),
 
   // Files

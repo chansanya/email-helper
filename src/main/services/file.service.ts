@@ -69,6 +69,92 @@ export class FileService {
     return getAttachmentDir()
   }
 
+  public async autoExtractFromAttachments(): Promise<{ extractedCount: number; skippedCount: number }> {
+    const scanFiles = await this.scanAttachmentFiles()
+    const currentMappings = await storageService.getMappings()
+    const existingAttachPaths = new Set(
+      currentMappings.map((m) => m.attachmentPath.toLowerCase().replace(/\\/g, '/'))
+    )
+
+    let extractedCount = 0
+    let skippedCount = 0
+    const updatedList = [...currentMappings]
+
+    for (const file of scanFiles) {
+      if (file.isDirectory) continue
+      const normalizedPath = file.relativePath.toLowerCase().replace(/\\/g, '/')
+      if (existingAttachPaths.has(normalizedPath)) {
+        skippedCount++
+        continue
+      }
+
+      // 保留完整文件名（去除扩展名）作为收件人姓名
+      const rawName = path.parse(file.name).name
+      const newMapping: RecipientMapping = {
+        id: 'map_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        recipientEmail: '',
+        recipientName: rawName || file.name,
+        attachmentPath: file.relativePath,
+        enabled: false, // 邮箱为空默认禁用，防误发
+        remark: '自动扫描生成(待补全邮箱)',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        fileStatus: 'OK',
+        fileSize: file.size,
+        emailStatus: 'INVALID'
+      }
+
+      updatedList.push(newMapping)
+      existingAttachPaths.add(normalizedPath)
+      extractedCount++
+    }
+
+    if (extractedCount > 0) {
+      await storageService.saveMappings(updatedList)
+    }
+
+    return { extractedCount, skippedCount }
+  }
+
+  public async exportMissingTemplate(): Promise<{ filePath: string; count: number }> {
+    const mappings = await storageService.getMappings()
+    const missingItems = mappings.filter((m) => !m.recipientEmail || !EMAIL_REGEX.test(m.recipientEmail))
+
+    if (missingItems.length === 0) {
+      throw new Error('当前所有收件人均已录入有效邮箱，无需导出待收集表格')
+    }
+
+    const { filePath } = await dialog.showSaveDialog({
+      title: '导出待补全邮箱收集模板',
+      defaultPath: `收件人邮箱待收集名单_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      filters: [{ name: 'Excel 工作簿', extensions: ['xlsx'] }]
+    })
+
+    if (!filePath) return { filePath: '', count: 0 }
+
+    const rows = missingItems.map((m, idx) => ({
+      序号: idx + 1,
+      收件人姓名: m.recipientName,
+      '收件邮箱 (请在此列填写)': m.recipientEmail || '',
+      '专属附件相对路径 (请勿修改)': m.attachmentPath,
+      备注: m.remark || ''
+    }))
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 24 },
+      { wch: 32 },
+      { wch: 38 },
+      { wch: 22 }
+    ]
+    XLSX.utils.book_append_sheet(wb, ws, '待补全名单')
+    XLSX.writeFile(wb, filePath)
+
+    return { filePath, count: missingItems.length }
+  }
+
   public async exportTemplateFile(): Promise<string> {
     const { filePath } = await dialog.showSaveDialog({
       title: '导出邮件映射导入模板',
@@ -96,7 +182,6 @@ export class FileService {
 
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.json_to_sheet(sampleData)
-    // 设置列宽
     ws['!cols'] = [
       { wch: 28 },
       { wch: 14 },
@@ -126,14 +211,22 @@ export class FileService {
     }
 
     const currentMappings = await storageService.getMappings()
-    const existingMap = new Map<string, RecipientMapping>()
+    const existingEmailMap = new Map<string, RecipientMapping>()
+    const existingAttachMap = new Map<string, RecipientMapping>()
+
     for (const m of currentMappings) {
-      existingMap.set(m.recipientEmail.toLowerCase(), m)
+      if (m.recipientEmail) {
+        existingEmailMap.set(m.recipientEmail.toLowerCase(), m)
+      }
+      if (m.attachmentPath) {
+        existingAttachMap.set(m.attachmentPath.toLowerCase().replace(/\\/g, '/'), m)
+      }
     }
 
     let importedCount = 0
     let skippedCount = 0
     let overwrittenCount = 0
+    let completedCount = 0
     const errors: Array<{ row: number; email?: string; reason: string }> = []
     const updatedList: RecipientMapping[] = [...currentMappings]
 
@@ -142,20 +235,69 @@ export class FileService {
       const rowNum = i + 2 // 包含表头
 
       // 智能匹配列名
-      const email = String(row['收件邮箱'] || row['recipient_email'] || row['email'] || row['邮箱'] || '').trim()
-      const name = String(row['收件人姓名'] || row['recipient_name'] || row['name'] || row['姓名'] || '').trim()
-      const attach = String(row['附件相对路径'] || row['attachment_path'] || row['attachment'] || row['附件'] || '').trim()
+      const email = String(
+        row['收件邮箱 (请在此列填写)'] ||
+        row['收件邮箱'] ||
+        row['recipient_email'] ||
+        row['email'] ||
+        row['邮箱'] ||
+        ''
+      ).trim()
+
+      const name = String(
+        row['收件人姓名'] ||
+        row['recipient_name'] ||
+        row['name'] ||
+        row['姓名'] ||
+        ''
+      ).trim()
+
+      const attach = String(
+        row['专属附件相对路径 (请勿修改)'] ||
+        row['附件相对路径'] ||
+        row['attachment_path'] ||
+        row['attachment'] ||
+        row['附件'] ||
+        ''
+      ).trim()
+
       const enabledRaw = String(row['是否启用'] || row['enabled'] || row['启用'] || '1').trim()
       const remark = String(row['备注'] || row['remark'] || '').trim()
 
-      if (!email && !attach) continue // 跳过全空行
+      if (!email && !attach && !name) continue // 跳过全空行
 
+      const normAttach = attach ? attach.toLowerCase().replace(/\\/g, '/') : ''
+      const isValidEmail = !!email && EMAIL_REGEX.test(email)
+
+      // 1. 优先按专属附件相对路径匹配已有记录（二次上传回填邮箱模式）
+      if (normAttach && existingAttachMap.has(normAttach)) {
+        const existing = existingAttachMap.get(normAttach)!
+        if (email) {
+          if (!isValidEmail) {
+            errors.push({ row: rowNum, email, reason: '邮箱格式非法' })
+            continue
+          }
+          existing.recipientEmail = email
+          if (name) existing.recipientName = name
+          if (remark) existing.remark = remark
+          const check = safeResolveAttachmentPath(existing.attachmentPath)
+          existing.fileStatus = check.exists && check.isFile ? 'OK' : 'MISSING'
+          existing.fileSize = check.size
+          existing.emailStatus = 'VALID'
+          existing.enabled = true // 补全成功后自动解除禁用
+          existing.updatedAt = new Date().toISOString()
+          completedCount++
+          continue
+        }
+      }
+
+      // 2. 常规导入模式：必须有邮箱
       if (!email) {
         errors.push({ row: rowNum, reason: '收件邮箱不能为空' })
         continue
       }
 
-      if (!EMAIL_REGEX.test(email)) {
+      if (!isValidEmail) {
         errors.push({ row: rowNum, email, reason: '邮箱格式非法' })
         continue
       }
@@ -165,29 +307,29 @@ export class FileService {
         continue
       }
 
-      const check = safeResolveAttachmentPath(attach)
-      if (check.error) {
-        // 虽然附件不存在或越界，但仍可以记录警告，不致命卡死导入，标记状态即可
-      }
-
       const enabled = !(enabledRaw === '否' || enabledRaw === '0' || enabledRaw.toLowerCase() === 'false')
       const lowerEmail = email.toLowerCase()
 
-      if (existingMap.has(lowerEmail)) {
+      if (existingEmailMap.has(lowerEmail)) {
         if (options.strategy === 'SKIP_EXISTING') {
           skippedCount++
           continue
         } else {
           // 覆盖
-          const existing = existingMap.get(lowerEmail)!
+          const existing = existingEmailMap.get(lowerEmail)!
           existing.recipientName = name || existing.recipientName
           existing.attachmentPath = attach.replace(/\\/g, '/')
           existing.enabled = enabled
           existing.remark = remark || existing.remark
           existing.updatedAt = new Date().toISOString()
+          const check = safeResolveAttachmentPath(existing.attachmentPath)
+          existing.fileStatus = check.exists && check.isFile ? 'OK' : 'MISSING'
+          existing.fileSize = check.size
+          existing.emailStatus = 'VALID'
           overwrittenCount++
         }
       } else {
+        const check = safeResolveAttachmentPath(attach)
         const newRecord: RecipientMapping = {
           id: 'map_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
           recipientEmail: email,
@@ -196,10 +338,14 @@ export class FileService {
           enabled,
           remark,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          fileStatus: check.exists && check.isFile ? 'OK' : 'MISSING',
+          fileSize: check.size,
+          emailStatus: 'VALID'
         }
         updatedList.push(newRecord)
-        existingMap.set(lowerEmail, newRecord)
+        existingEmailMap.set(lowerEmail, newRecord)
+        if (normAttach) existingAttachMap.set(normAttach, newRecord)
         importedCount++
       }
     }
@@ -210,6 +356,7 @@ export class FileService {
       importedCount,
       skippedCount,
       overwrittenCount,
+      completedCount,
       errorCount: errors.length,
       errors
     }

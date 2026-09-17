@@ -13,7 +13,7 @@
           <div class="guide-content">
             <div class="guide-title">准备符合规范的表格文件</div>
             <div class="guide-desc">
-              表格首行需包含：<code>收件邮箱</code>、<code>附件相对路径</code>，可选包含 <code>收件人姓名</code>、<code>备注</code>。
+              表格首行需包含：<code>收件邮箱</code>、<code>附件相对路径</code>，可选 <code>收件人姓名</code>、<code>备注</code>。支持直接上传已补齐邮箱的收集表格（系统将按附件路径自动匹配回填）。
             </div>
           </div>
           <button type="button" class="template-download-btn" @click="downloadTemplate">
@@ -55,10 +55,11 @@
           <span class="result-title">导入完成统计汇总</span>
         </div>
         <div class="result-stats">
+          <div v-if="result.completedCount" class="stat-pill primary">回填补全: {{ result.completedCount }} 位</div>
           <div class="stat-pill success">新增添加: {{ result.importedCount }} 位</div>
           <div class="stat-pill warning">覆盖更新: {{ result.overwrittenCount }} 位</div>
           <div class="stat-pill neutral">跳过重复: {{ result.skippedCount }} 位</div>
-          <div class="stat-pill danger">格式异常: {{ result.errorCount }} 位</div>
+          <div v-if="result.errorCount > 0" class="stat-pill danger">格式异常: {{ result.errorCount }} 位</div>
         </div>
 
         <div v-if="result.errors && result.errors.length > 0" class="error-box">
@@ -283,6 +284,12 @@ defineExpose({ open })
 .stat-pill.success {
   background: var(--success-subtle);
   color: var(--success-color);
+}
+
+.stat-pill.primary {
+  background: var(--primary-subtle);
+  color: var(--primary-color);
+  border: 1px solid #BFDBFE;
 }
 
 .stat-pill.warning {

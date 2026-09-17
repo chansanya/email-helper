@@ -11,13 +11,17 @@
           </div>
 
           <div class="header-actions">
+            <button class="mini-tool-btn" title="从附件目录自动扫描提取文件名生成收件人" @click="handleAutoExtract">
+              <ScanLine :size="15" />
+              <span>提取</span>
+            </button>
             <button class="mini-tool-btn" title="导入 Excel 或 CSV 表格" @click="openImport">
               <Upload :size="15" />
-              <span>导入表格</span>
+              <span>导入</span>
             </button>
             <button class="mini-tool-btn primary" title="手动录入收件人与附件映射" @click="openAdd">
               <Plus :size="15" />
-              <span>手动新增</span>
+              <span>新增</span>
             </button>
             <button class="mini-tool-btn" title="核验所有附件物理文件是否存在" @click="validateFiles">
               <RefreshCw :size="15" :class="{ spinning: isValidating }" />
@@ -125,6 +129,14 @@
             就绪率: <strong>{{ readyCount }}</strong> / {{ store.mappings.length }} 封
           </span>
           <div class="footer-actions">
+            <button
+              v-if="missingEmailCount > 0"
+              class="text-action-btn highlight"
+              title="将缺少邮箱的收件人导出为 Excel 模板供下发收集"
+              @click="handleExportMissingTemplate"
+            >
+              导出待收集模板 ({{ missingEmailCount }})
+            </button>
             <button class="text-action-btn" @click="exportMappings">导出名单</button>
             <button class="text-action-btn" @click="batchToggleAll">
               {{ allEnabled ? '全部停用' : '全部启用' }}
@@ -290,6 +302,7 @@ import {
   Search,
   Trash2,
   Edit,
+  ScanLine,
   Paperclip,
   Inbox,
   PenTool,
@@ -335,6 +348,10 @@ const isSendingTest = ref(false)
 
 const readyCount = computed(
   () => store.mappings.filter((m) => m.enabled && m.fileStatus !== 'MISSING' && m.emailStatus !== 'INVALID').length
+)
+
+const missingEmailCount = computed(
+  () => store.mappings.filter((m) => !m.recipientEmail || m.emailStatus === 'INVALID').length
 )
 
 const issueCount = computed(
@@ -421,6 +438,33 @@ async function batchToggleAll() {
 
 function openAdd() {
   drawerRef.value?.openAdd()
+}
+
+async function handleAutoExtract() {
+  try {
+    const res = await window.electronAPI.autoExtractAttachments()
+    if (!res.success) throw new Error(res.error)
+    if (res.data?.extractedCount === 0) {
+      ElMessage.info('附件目录中没有发现新的未绑定文件')
+    } else {
+      ElMessage.success(`已自动扫描提取 ${res.data?.extractedCount} 位收件人（待补全邮箱）`)
+    }
+    await store.fetchMappings()
+  } catch (err: any) {
+    ElMessage.error(err?.message || '自动提取失败')
+  }
+}
+
+async function handleExportMissingTemplate() {
+  try {
+    const res = await window.electronAPI.exportMissingTemplate()
+    if (!res.success) throw new Error(res.error)
+    if (res.data?.filePath) {
+      ElMessage.success(`待收集模板已成功导出至: ${res.data.filePath}`)
+    }
+  } catch (err: any) {
+    ElMessage.error(err?.message || '导出失败')
+  }
 }
 
 function editItem(item: RecipientMapping) {
@@ -858,6 +902,15 @@ onMounted(() => {
   color: var(--text-secondary);
   cursor: pointer;
   font-weight: 500;
+}
+
+.text-action-btn.highlight {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.text-action-btn.highlight:hover {
+  text-decoration: underline;
 }
 
 .text-action-btn:hover {

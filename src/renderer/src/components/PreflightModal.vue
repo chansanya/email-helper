@@ -77,7 +77,7 @@
           :loading="isStarting"
           @click="handleConfirmSend"
         >
-          确认无误，立即开始批量发送
+          立即开始
         </el-button>
       </div>
     </template>

@@ -1,0 +1,34 @@
+appId: com.emailhelper.app
+productName: 邮箱助手
+directories:
+  output: release
+  buildResources: resources
+files:
+  - dist/**
+  - "!**/*.map"
+  - "!dist/renderer/**/*.md"
+extraFiles:
+  - from: resources/import-templates
+    to: import-templates
+    filter:
+      - "**/*"
+compression: normal
+win:
+  signAndEditExecutable: false
+  artifactName: EmailHelper-${version}-${arch}.${ext}
+  target:
+    - target: portable
+      arch:
+        - x64
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  artifactName: EmailHelper-${version}-${arch}-setup.${ext}
+  differentialPackage: false
+portable:
+  artifactName: EmailHelper-${version}-${arch}-portable.${ext}

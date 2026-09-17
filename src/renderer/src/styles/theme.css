@@ -1,0 +1,210 @@
+:root {
+  --bg-titlebar: #FFFFFF;
+  --bg-app: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F1F5F9;
+  --bg-hover: #E2E8F0;
+  --border-color: #E2E8F0;
+  --border-subtle: #CBD5E1;
+  --border-dark: #94A3B8;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  --primary-color: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-subtle: #EFF6FF;
+  --success-color: #059669;
+  --success-subtle: #ECFDF5;
+  --warning-color: #D97706;
+  --warning-subtle: #FFFBEB;
+  --danger-color: #DC2626;
+  --danger-subtle: #FEF2F2;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 10px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+/* 桌面应用外层窗体 */
+.desktop-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+}
+
+/* 舒适滚动条 */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* 桌面卡片与容器基底 */
+.desktop-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 浅色分段控制切页 (Segmented Control) */
+.desktop-segmented {
+  display: inline-flex;
+  align-items: center;
+  background: #F1F5F9;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.desktop-segmented button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.desktop-segmented button:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.desktop-segmented button.active {
+  background: #FFFFFF;
+  color: var(--primary-color);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* Element Plus 桌面舒适大方适配 */
+.el-button {
+  font-size: 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  height: 36px;
+  padding: 8px 16px;
+}
+
+.el-button--small {
+  font-size: 13px;
+  height: 30px;
+  padding: 5px 12px;
+}
+
+.el-button--large {
+  font-size: 15px;
+  height: 42px;
+  padding: 10px 22px;
+  font-weight: 600;
+}
+
+.el-button--primary:not(.is-link):not(.is-text) {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.el-button--primary:not(.is-link):not(.is-text):hover {
+  background-color: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+}
+
+.el-button.is-link,
+.el-button.is-text {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
+.el-input__wrapper,
+.el-select__wrapper {
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--border-color) inset !important;
+  font-size: 14px;
+  min-height: 36px;
+}
+
+.el-input__wrapper:hover,
+.el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--border-subtle) inset !important;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1.5px var(--primary-color) inset !important;
+}
+
+.el-dialog {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 20px 30px -5px rgba(15, 23, 42, 0.12), 0 10px 15px -5px rgba(15, 23, 42, 0.06);
+}
+
+.el-dialog__header {
+  margin-right: 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+  background: #F8FAFC;
+}
+
+.el-dialog__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.el-table {
+  --el-table-header-bg-color: #F8FAFC;
+  --el-table-row-hover-bg-color: #F1F5F9;
+  font-size: 13px;
+}
+
+.el-table th.el-table__cell {
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 10px 0;
+}
+
+.el-table td.el-table__cell {
+  padding: 10px 0;
+}

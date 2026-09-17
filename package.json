@@ -1,0 +1,44 @@
+{
+  "name": "email-helper",
+  "version": "1.0.0",
+  "description": "邮箱助手 - 批量一对一精准邮件发送工具",
+  "main": "dist/main/index.js",
+  "author": "yf",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build:main": "vite build -c vite.main.config.ts",
+    "build:preload": "vite build -c vite.preload.config.ts",
+    "build:renderer": "vite build",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "dist:win": "npm run build && electron-builder --win --x64",
+    "dist:portable": "npm run build && electron-builder --win portable --x64"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "electron-log": "^5.1.7",
+    "element-plus": "^2.8.0",
+    "juice": "^10.0.1",
+    "lucide-vue-next": "^0.441.0",
+    "nodemailer": "^6.9.15",
+    "pinia": "^2.2.2",
+    "vue": "^3.5.0",
+    "write-file-atomic": "^5.0.1",
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/nodemailer": "^6.4.16",
+    "@types/write-file-atomic": "^4.0.3",
+    "@vitejs/plugin-vue": "^5.1.2",
+    "electron": "^31.3.0",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  }
+}

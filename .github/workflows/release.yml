@@ -37,7 +37,6 @@ jobs:
           name: windows-artifacts
           path: |
             release/*.exe
-            release/*.exe.blockmap
           retention-days: 5
 
   # ─── macOS: DMG + ZIP (x64 & arm64) ───────────────────────────────
@@ -68,14 +67,12 @@ jobs:
           path: |
             release/*.dmg
             release/*.zip
-            release/*.dmg.blockmap
           retention-days: 5
 
   # ─── Publish GitHub Release ────────────────────────────────────────
   release:
     needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
